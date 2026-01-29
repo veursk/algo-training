@@ -14,6 +14,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 const algorithmsDir = path.join(rootDir, 'algorithms');
 
+const green = (s) => `\x1b[32m${s}\x1b[0m`;
+const red = (s) => `\x1b[31m${s}\x1b[0m`;
+
 function getSections() {
   if (!fs.existsSync(algorithmsDir)) return [];
   return fs.readdirSync(algorithmsDir, { withFileTypes: true })
@@ -48,13 +51,14 @@ async function runSection(sectionName) {
       const result = tc.run(implModule);
       assert.deepStrictEqual(result, tc.expect, tc.name || 'unnamed');
       passed++;
+      console.log(green(`  ✓ ${tc.name || '(unnamed)'}`));
     } catch (err) {
-      errors.push({
-        name: tc.name || '(unnamed)',
-        message: err.message,
-        expected: tc.expect,
-        actual: err.actual !== undefined ? err.actual : (err.stack || String(err)),
-      });
+      const name = tc.name || '(unnamed)';
+      const actual = err.actual !== undefined ? err.actual : (err.stack || String(err));
+      errors.push({ name, message: err.message, expected: tc.expect, actual });
+      console.log(red(`  ✗ ${name}`));
+      console.log(`    expected: ${JSON.stringify(tc.expect)}`);
+      console.log(`    actual:   ${JSON.stringify(actual)}`);
     }
   }
 
@@ -86,21 +90,17 @@ async function main() {
     totalPassed += result.passed;
     totalFailed += result.failed;
 
-    const status = result.failed === 0 ? '✓' : '✗';
-    console.log(`\n[${result.section}] ${status} ${result.passed}/${result.total} 통과`);
+    const status = result.failed === 0 ? green('PASS') : red('FAIL');
+    console.log(`\n[${result.section}] ${status} ${result.passed}/${result.total}`);
 
-    if (result.errors.length > 0) {
-      for (const e of result.errors) {
-        console.log(`  ✗ ${e.name}`);
-        console.log(`    expected: ${JSON.stringify(e.expected)}`);
-        if (e.actual !== undefined) console.log(`    actual:   ${JSON.stringify(e.actual)}`);
-        console.log(`    ${e.message}`);
-      }
-    }
   }
 
   console.log('\n---');
-  console.log(`총 ${totalPassed} 통과, ${totalFailed} 실패`);
+  if (totalFailed > 0) {
+    console.log(red(`총 ${totalPassed} 통과, ${totalFailed} 실패`));
+  } else {
+    console.log(green(`총 ${totalPassed} 통과`));
+  }
   process.exit(totalFailed > 0 ? 1 : 0);
 }
 
