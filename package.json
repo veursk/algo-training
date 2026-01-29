@@ -1,0 +1,10 @@
+{
+  "name": "algo",
+  "version": "1.0.0",
+  "description": "알고리즘 구현 및 테스트 프로젝트",
+  "type": "module",
+  "scripts": {
+    "test": "node scripts/test.js",
+    "test:heap": "node scripts/test.js heap"
+  }
+}
