@@ -5,23 +5,24 @@
  *   예: node scripts/test.js heap
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import assert from 'assert';
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import assert from "assert";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, '..');
-const algorithmsDir = path.join(rootDir, 'algorithms');
+const rootDir = path.resolve(__dirname, "..");
+const algorithmsDir = path.join(rootDir, "algorithms");
 
 const green = (s) => `\x1b[32m${s}\x1b[0m`;
 const red = (s) => `\x1b[31m${s}\x1b[0m`;
 
 function getSections() {
   if (!fs.existsSync(algorithmsDir)) return [];
-  return fs.readdirSync(algorithmsDir, { withFileTypes: true })
-    .filter(d => d.isDirectory())
-    .map(d => d.name);
+  return fs
+    .readdirSync(algorithmsDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => d.name);
 }
 
 async function runSection(sectionName) {
@@ -46,19 +47,59 @@ async function runSection(sectionName) {
   const errors = [];
   let passed = 0;
 
+  function isSorted(arr, order) {
+    if (order !== "asc" && order !== "desc") return false;
+    for (let i = 1; i < arr.length; i++) {
+      if (order === "asc" && arr[i] < arr[i - 1]) return false;
+      if (order === "desc" && arr[i] > arr[i - 1]) return false;
+    }
+    return true;
+  }
+  function sameElements(a, b) {
+    if (a.length !== b.length) return false;
+    const sortedA = [...a].sort((x, y) => x - y);
+    const sortedB = [...b].sort((x, y) => x - y);
+    return sortedA.every((v, i) => v === sortedB[i]);
+  }
+
   for (const tc of testCases) {
     try {
-      const result = tc.run(implModule);
-      assert.deepStrictEqual(result, tc.expect, tc.name || 'unnamed');
+      const result = tc.run(implModule, tc);
+      if (tc.expectSorted != null) {
+        // sort 테스트: 결과가 올바른 방향으로 정렬되어 있고, 원본과 동일한 원소 multiset이면 통과
+        assert(Array.isArray(result), `expected array, got ${typeof result}`);
+        assert(
+          isSorted(result, tc.expectSorted),
+          `result not sorted ${tc.expectSorted}: ${JSON.stringify(result)}`
+        );
+        assert(
+          sameElements(result, tc.input),
+          `result has different elements from input. input: ${JSON.stringify(
+            tc.input
+          )}, result: ${JSON.stringify(result)}`
+        );
+      } else {
+        assert.deepStrictEqual(result, tc.expect, tc.name || "unnamed");
+      }
       passed++;
-      console.log(green(`  ✓ ${tc.name || '(unnamed)'}`));
+      console.log(green(`  ✓ ${tc.name || "(unnamed)"}`));
     } catch (err) {
-      const name = tc.name || '(unnamed)';
-      const actual = err.actual !== undefined ? err.actual : (err.stack || String(err));
+      const name = tc.name || "(unnamed)";
+      const actual =
+        err.actual !== undefined ? err.actual : err.stack || String(err);
       errors.push({ name, message: err.message, expected: tc.expect, actual });
       console.log(red(`  ✗ ${name}`));
-      console.log(`    expected: ${JSON.stringify(tc.expect)}`);
-      console.log(`    actual:   ${JSON.stringify(actual)}`);
+      if (tc.expectSorted != null) {
+        console.log(
+          `    expectSorted: ${tc.expectSorted}, input: ${JSON.stringify(
+            tc.input
+          )}`
+        );
+        console.log(`    actual:       ${JSON.stringify(actual)}`);
+      } else {
+        console.log(`    expected: ${JSON.stringify(tc.expect)}`);
+        console.log(`    actual:   ${JSON.stringify(actual)}`);
+      }
     }
   }
 
@@ -73,12 +114,10 @@ async function runSection(sectionName) {
 
 async function main() {
   const sectionArg = process.argv[2];
-  const sections = sectionArg
-    ? [sectionArg]
-    : getSections();
+  const sections = sectionArg ? [sectionArg] : getSections();
 
   if (sections.length === 0) {
-    console.log('실행할 알고리즘 섹션이 없습니다.');
+    console.log("실행할 알고리즘 섹션이 없습니다.");
     process.exit(0);
   }
 
@@ -90,12 +129,13 @@ async function main() {
     totalPassed += result.passed;
     totalFailed += result.failed;
 
-    const status = result.failed === 0 ? green('PASS') : red('FAIL');
-    console.log(`\n[${result.section}] ${status} ${result.passed}/${result.total}`);
-
+    const status = result.failed === 0 ? green("PASS") : red("FAIL");
+    console.log(
+      `\n[${result.section}] ${status} ${result.passed}/${result.total}`
+    );
   }
 
-  console.log('\n---');
+  console.log("\n---");
   if (totalFailed > 0) {
     console.log(red(`총 ${totalPassed} 통과, ${totalFailed} 실패`));
   } else {
