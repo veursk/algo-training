@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node scripts/test.js",
-    "test:heap": "node scripts/test.js heap"
+    "test:heap": "node scripts/test.js heap",
+    "test:quicksort": "node scripts/test.js quicksort"
   }
 }
