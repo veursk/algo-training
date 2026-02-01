@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node scripts/test.js",
     "test:heap": "node scripts/test.js heap",
-    "test:quicksort": "node scripts/test.js quicksort"
+    "test:quicksort": "node scripts/test.js quicksort",
+    "test:countingsort": "node scripts/test.js countingsort"
   }
 }
